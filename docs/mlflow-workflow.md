@@ -58,18 +58,34 @@ make mlflow-ui       # opens http://localhost:5001
 You should see every run logged in Colab, with full params/metrics/artifacts — compare runs, sort by
 metric, and pick the model whose artifacts you export into `ml/artifacts/` for the backend (Stage 2).
 
-## 5. Export the winning model's artifacts (separate from step 2-4)
+## 5. Export the winning model's artifacts (separate from steps 2-4)
 
-This is not part of the `mlruns` sync — it's a manual "download the specific files the backend needs":
+This is not part of the `mlruns` sync — it's a separate "download the specific files the backend needs".
 
-```python
-# In Colab, once you've picked the best run
-torch.save(model.state_dict(), "model.pt")
-# ... save model_config.json, scaler.pkl, feature_columns.json, evaluation_report.json
+**Don't hand-roll this.** Run the two cells in **Section 10 of the notebook**; they do the whole job.
+Earlier revisions of this doc showed a one-line `torch.save(model.state_dict(), "model.pt")` sketch here,
+which is actively misleading in two ways:
+
+- **`model` is not the trained final model.** After a full notebook run, the global `model` holds the last
+  iteration of Section 7's regularization loop. The tuned model is `final_model`, built in 9.1.
+- **The weights alone are useless.** Inference needs the fitted `scaler`, the exact `feature_columns`
+  order, and the tuned `decision_threshold` — without them the backend can't reproduce the preprocessing
+  the model was trained on, and would silently fall back to the untuned 0.5 threshold.
+
+Section 10 writes all five artifacts from `final_model`, then zips and downloads `export.zip` and
+`mlruns_export.zip`. Unpack them locally:
+
+```bash
+unzip ~/Downloads/export.zip -d /tmp/cc-export
+cp -R /tmp/cc-export/export/. ml/artifacts/
+rm -rf /tmp/cc-export
 ```
 
-Download these and place them under `ml/artifacts/{model,preprocessing,metrics}/` per the layout in
-[architecture.md](architecture.md#artifact-flow-colab--serving).
+That gives the layout in [architecture.md](architecture.md#artifact-flow-colab--serving):
+`ml/artifacts/{model,preprocessing,metrics}/`.
+
+**Colab storage is ephemeral** — anything written to the runtime's filesystem is gone when the session
+disconnects or recycles. Download before you close the tab, or the training run has to be repeated.
 
 ## If this ever gets annoying: live tracking via tunnel
 

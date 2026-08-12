@@ -8,7 +8,7 @@ what's next" without re-reading the whole conversation.
 | Stage | Status |
 |---|---|
 | Stage 1 — Project structure, `uv` envs, Docker + MLflow tracking | ✅ Done |
-| Stage 1.5 — Colab: EDA, preprocessing, training, tuning, MLflow logging | 🔄 In progress — notebook fully drafted, awaiting your Colab run |
+| Stage 1.5 — Colab: EDA, preprocessing, training, tuning, MLflow logging | ✅ Done — artifacts in `ml/artifacts/`, `mlruns/` merged |
 | Stage 2 — FastAPI backend serving the exported model | ⬜ Not started |
 | Stage 3 — Streamlit dashboard | ⬜ Not started |
 
@@ -101,13 +101,34 @@ Work through it at your own pace — [ml-techniques-reference.md](ml-techniques-
 sheet, and the notebook's own markdown cells explain the "why" at each step. Paste code/output back here any
 time you want a second pair of eyes.
 
-**Definition of done for this stage:**
-- [ ] Ran end-to-end in Colab without errors (restart runtime first, since the mlflow pin needs a fresh import)
-- [ ] Reviewed each "Reading this plot" interpretation against your actual output — flag anything that
-      doesn't match what's described (small dataset-sampling differences are expected, wildly different
-      patterns are worth a second look)
-- [ ] `mlruns/` exported and merged into `infra/mlflow/data/mlruns/` (browsable locally)
-- [ ] `ml/artifacts/{model,preprocessing,metrics}/` populated from the winning run
+**Definition of done for this stage — all complete (2026-08-12):**
+- [x] Ran end-to-end in Colab without errors
+- [x] Reviewed interpretations against actual output — led to the PR-AUC selection fix, validation-set
+      threshold tuning, and per-epoch MLflow logging (see revision log above)
+- [x] `mlruns/` exported and merged into `infra/mlflow/data/mlruns/` — every run from Sections 4, 6, 7, 8, 9
+      browsable at `localhost:5001`
+- [x] `ml/artifacts/{model,preprocessing,metrics}/` populated from `final_model` (Section 10's export,
+      correctly — not the stray `model.pt` from the doc's illustrative snippet, which used the wrong
+      leftover variable and was discarded)
+
+**Final numbers** (`ml/artifacts/metrics/evaluation_report.json`, test set):
+
+| Metric | @0.5 | @tuned (0.28) |
+|---|---|---|
+| Precision | 0.660 | 0.531 |
+| Recall | 0.312 | 0.560 |
+| F1 | 0.424 | **0.545** |
+| PR-AUC | 0.553 | 0.553 |
+| ROC-AUC | 0.774 | 0.774 |
+
+Naive baseline accuracy: 0.7788. Imbalance strategy selected: `baseline` (by PR-AUC — the fix from the
+previous revision). Winning hyperparameters found via `grid` search. PR-AUC 0.553 and F1 0.545 are both
+improvements over the first (buggy) run's 0.515 / 0.534 — the PR-AUC-based selection and validation-tuned
+threshold were real gains, not just corrections.
+
+**Model contract for the backend** (`ml/artifacts/model/model_config.json`): 33 input features in a fixed
+order, `hidden_dims=[64,32]`, `dropout=0.2`, `use_batchnorm=true`, `init_scheme=he`, `decision_threshold=0.28`
+— the backend must apply this threshold, not the PyTorch default of 0.5.
 
 ## Stage 2 — Backend (FastAPI)
 

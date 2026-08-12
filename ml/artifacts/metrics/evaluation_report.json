@@ -1,0 +1,22 @@
+{
+  "test_metrics_at_threshold_0.5": {
+    "accuracy": 0.8122222222222222,
+    "precision": 0.6602972399150743,
+    "recall": 0.31224899598393574,
+    "f1": 0.4239945466939332,
+    "roc_auc": 0.7735551223157471,
+    "pr_auc": 0.5525323341582853
+  },
+  "test_metrics_at_chosen_threshold": {
+    "accuracy": 0.7933333333333333,
+    "precision": 0.5314285714285715,
+    "recall": 0.5602409638554217,
+    "f1": 0.5454545454545454,
+    "roc_auc": 0.7735551223157471,
+    "pr_auc": 0.5525323341582853
+  },
+  "chosen_threshold": 0.28,
+  "naive_baseline_accuracy": 0.7788,
+  "imbalance_strategy": "baseline",
+  "hyperparameter_search_winner_method": "grid"
+}
