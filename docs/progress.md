@@ -10,7 +10,7 @@ what's next" without re-reading the whole conversation.
 | Stage 1 — Project structure, `uv` envs, Docker + MLflow tracking | ✅ Done |
 | Stage 1.5 — Colab: EDA, preprocessing, training, tuning, MLflow logging | ✅ Done — artifacts in `ml/artifacts/`, `mlruns/` merged |
 | Stage 2 — FastAPI backend serving the exported model | ✅ Done |
-| Stage 3 — Streamlit dashboard | ⬜ Not started |
+| Stage 3 — Streamlit dashboard | ✅ Done |
 
 ## Stage 1 — Project structure & MLflow tracking (done: 2026-08-12)
 
@@ -167,11 +167,50 @@ make docker-up                      # mlflow + backend
 curl http://localhost:8000/health/ready
 ```
 
-## Stage 3 — Frontend (Streamlit)
+## Stage 3 — Frontend (Streamlit) — done: 2026-08-12
 
-Not started. Blocked on nothing now — Stage 2's `/predict`, `/predict/batch`, and `/model/info` contracts
-exist and are verified. Planned scope: single-prediction form, batch CSV upload, a model-insights page
-(backed by `/model/info`), uncomment the `frontend` service in `docker-compose.yml`.
+- [x] `app/api_client.py` — shared HTTP client (URL resolution, timeouts, error handling) used by every
+      page instead of three copies of `requests` boilerplate
+- [x] `app/sample_profiles.py` — the same low-risk/high-risk profiles from `backend/tests/test_predict.py`,
+      reused for the "load example" buttons — demo and test suite agree on what "obviously low/high risk"
+      means
+- [x] `app/Home.py` — real landing page: live `/health/ready` + `/model/info` check, headline metrics,
+      navigation cards into the three pages
+- [x] `app/pages/1_Single_Prediction.py` — full 23-field form (grouped: demographics, repayment status,
+      bills, payments), "load example" buttons, `POST /predict`, result shown as a Plotly gauge with the
+      decision threshold marked
+- [x] `app/pages/2_Batch_Prediction.py` — CSV upload (with a downloadable template), column validation,
+      `POST /predict/batch`, results table + probability-distribution histogram, CSV download
+- [x] `app/pages/3_Model_Insights.py` — architecture summary, the "accuracy is misleading here" explanation
+      (naive baseline vs. PR-AUC, same argument the training notebook makes), a @0.5-vs-@tuned metrics
+      comparison chart, links to MLflow and the Swagger docs
+- [x] Applied the `dataviz` skill's status/categorical palette consistently: green `#0ca30c` / red
+      `#d03b3b` reserved for No-Default/Default everywhere (never reused as a generic series color), blue
+      `#2a78d6` → orange `#eb6834` as the fixed categorical order for the threshold-comparison chart
+- [x] `docker-compose.yml` — `frontend` service uncommented, with an explicit `environment:` override
+      (`BACKEND_API_URL=http://backend:8000`) — the shared `.env`'s `localhost:8000` is correct for local
+      `uv run` but would resolve to the frontend container itself inside Compose; same class of bug as
+      Stage 2's `ARTIFACTS_DIR` issue, pre-empted this time rather than discovered after the fact
+- [x] Fixed a Streamlit deprecation (`use_container_width` → `width="stretch"`) across all four files —
+      the removal deadline (2025-12-31) had already passed
+- [x] Verified all three pages against the **live backend** (not mocked): single-prediction probabilities
+      matched a direct API call to 15 decimal places in both directions (14.3% low-risk, 70.4% high-risk);
+      the batch page's numpy→JSON serialization round-trip verified to produce byte-identical predictions to
+      single-predict; Model Insights' charts confirmed against the real `evaluation_report.json`
+- [x] Verified the full three-container stack (`mlflow` + `backend` + `frontend`) via `docker compose up` —
+      confirmed the frontend container actually resolves `backend:8000` over Docker's internal DNS and
+      gets a real prediction back, not just that all three containers report "running"
+
+**Try it:**
+```bash
+make frontend-run                   # http://localhost:8501 (needs backend running separately)
+# or, full stack:
+make docker-up                      # mlflow + backend + frontend
+open http://localhost:8501
+```
+
+All three project stages are now complete: infra/MLflow (Stage 1) → trained model (Stage 1.5) → serving API
+(Stage 2) → dashboard (Stage 3).
 
 ## Decisions log
 

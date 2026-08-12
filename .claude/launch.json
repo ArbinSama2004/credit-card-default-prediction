@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "--project", "frontend", "streamlit", "run", "frontend/app/Home.py"],
+      "port": 8501
+    }
+  ]
+}

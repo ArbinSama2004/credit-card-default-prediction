@@ -79,12 +79,16 @@ changes `mlflow.set_tracking_uri(...)` in the notebook — nothing else in this 
 ## Local dev vs. Docker
 
 Everything can run natively via `uv run ...` (see the Makefile) for fast iteration, or via
-`docker compose up` for something closer to the deployed shape. `docker-compose.yml` enables `mlflow` and
-`backend` as of Stage 2; `frontend` is defined but commented out until Stage 3 lands.
+`docker compose up` for something closer to the deployed shape. All three services — `mlflow`, `backend`,
+`frontend` — are enabled in `docker-compose.yml` as of Stage 3.
 
 Verified both paths produce **identical** predictions for the same input (same probability to 15 decimal
 places) — confirming the Docker image's artifact copy and CPU-torch build don't introduce any drift from
-local `uv run`.
+local `uv run`. Also verified the frontend container actually resolves the backend by its Compose service
+name (`http://backend:8000`) over Docker's internal network — `localhost` inside a container refers to that
+container, not its neighbors, so this is set via an explicit `environment:` override in
+`docker-compose.yml` rather than the shared `.env` file (see `.env.example`'s comments on both this and the
+analogous `ARTIFACTS_DIR` case in the backend).
 
 ## Ports
 
@@ -92,7 +96,7 @@ local `uv run`.
 |---|---|---|
 | MLflow UI | `5001` | Not `5000` — that collides with macOS AirPlay Receiver |
 | Backend (FastAPI) | `8000` | `/docs` for interactive Swagger UI |
-| Frontend (Streamlit) | `8501` | Stage 3 |
+| Frontend (Streamlit) | `8501` | Home, Single Prediction, Batch Prediction, Model Insights |
 
 ## Tech stack
 

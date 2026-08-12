@@ -28,14 +28,21 @@ services:
       - mlflow
     restart: unless-stopped
 
-  # --- Enabled in Stage 3 ---
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #   container_name: cc-default-frontend
-  #   ports:
-  #     - "8501:8501"
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - backend
+  frontend:
+    build:
+      context: ./frontend
+    container_name: cc-default-frontend
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      # Overrides .env's BACKEND_API_URL (localhost:8000, correct for local
+      # `uv run`) — inside this container, "localhost" means the frontend
+      # container itself, not the backend one. Compose's service DNS name
+      # ("backend") is the only address that reaches it from here. Same class
+      # of bug as ARTIFACTS_DIR in the backend service — see .env.example.
+      - BACKEND_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
