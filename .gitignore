@@ -44,3 +44,4 @@ frontend/.streamlit/secrets.toml
 
 # ipynb checkpoints
 ml/notebooks/01_credit_card_default_training_ranInColab.ipynb
+ml/notebooks/01_credit_card_default_training_finalrunInColab.ipynb
