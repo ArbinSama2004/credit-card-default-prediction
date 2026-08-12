@@ -8,7 +8,7 @@ what's next" without re-reading the whole conversation.
 | Stage | Status |
 |---|---|
 | Stage 1 — Project structure, `uv` envs, Docker + MLflow tracking | ✅ Done |
-| Stage 1.5 — Colab: EDA, preprocessing, training, tuning, MLflow logging | 🔄 In progress — EDA drafted |
+| Stage 1.5 — Colab: EDA, preprocessing, training, tuning, MLflow logging | 🔄 In progress — notebook fully drafted, awaiting your Colab run |
 | Stage 2 — FastAPI backend serving the exported model | ⬜ Not started |
 | Stage 3 — Streamlit dashboard | ⬜ Not started |
 
@@ -41,17 +41,34 @@ make frontend-run    # http://localhost:8501
 
 ## Stage 1.5 — Colab training (your turn)
 
-In progress. Section 2 (EDA) in `ml/notebooks/01_credit_card_default_training.ipynb` is fully drafted —
-target imbalance + naive-accuracy floor, missing-value/duplicate check, `EDUCATION`/`MARRIAGE` undocumented
-codes, numeric distributions (raw vs. log for the skewed bill/payment columns), `PAY_0..PAY_6` vs. default
-rate, correlation ranking + heatmap, demographic slices, and a summary table mapping every finding to the
-Section 3 decision it drives. Heavily commented on purpose — read it in Colab rather than just running it,
-that's where the "why" lives. Sections 3 onward are still `# TODO` placeholders, filled in as we go section
-by section.
+The full notebook is drafted end-to-end — all 10 sections, no `# TODO` placeholders left. 73 cells, code +
+markdown alternating, every plot followed by a "Reading this plot" interpretation cell (not just a code
+comment) explaining what to look for and why. Written to run top-to-bottom in Colab as-is:
 
-Work through the rest of `ml/notebooks/01_credit_card_default_training.ipynb` at your own pace, using
-[ml-techniques-reference.md](ml-techniques-reference.md) as the cheat sheet. Paste code/output back here
-any time you want a second pair of eyes.
+- **1. Load Data** — manual CSV upload (default) or `kagglehub` (commented alternative)
+- **2. EDA** — target imbalance + naive-accuracy floor, missing-value/duplicate check, `EDUCATION`/`MARRIAGE`
+  undocumented codes, numeric distributions (raw vs. log), `PAY_0..PAY_6` vs. default rate, correlation
+  ranking + heatmap, demographic slices, summary table mapping every finding → its Section 3 decision
+- **3. Preprocessing & Feature Engineering** — category cleanup, 7 engineered features (`PAY_AVG`, `PAY_MAX`,
+  `DELINQUENCY_STREAK`, `BILL_TREND`, `AVG_BILL`, `UTILIZATION`, `PAY_TO_BILL_RATIO`) each justified against
+  an EDA finding, a before/after correlation plot proving they add signal, stratified 70/15/15 split, scaler
+  fit on train only
+- **4. Handling Class Imbalance** — baseline / class-weighted / SMOTE / undersampling, same architecture,
+  trained fairly, compared on precision/recall/F1/PR-AUC (never accuracy); winner picked automatically by
+  validation F1 and carried into every section after
+- **5. MLP Model** — the `CreditDefaultMLP` class (had to be defined in 4.0 to run the imbalance comparison;
+  this section documents the design decisions: hidden dims, ReLU, batchnorm, dropout, raw-logit output)
+- **6. Weight Initialization** — zero / Xavier / He, with the classic "zero init can't break symmetry" loss
+  curve made visible
+- **7. Regularization** — 6-way ablation (none / dropout / batchnorm / weight decay / early stopping / all
+  combined), overfitting gap shown directly via train-vs-val loss curves
+- **8. Hyperparameter Tuning** — grid search, random search, and an Optuna (TPE) study, same 12-trial budget
+  each, compared head-to-head on a "best-so-far F1 per trial" efficiency plot
+- **9. Final Evaluation** — retrain the overall winner, `mlflow.search_runs` to confirm it independently,
+  confusion matrix + ROC + PR curves, full threshold sweep (0.5 default vs. tuned), error analysis on false
+  negatives (`PAY_0` distribution, how-close-were-the-misses)
+- **10. Export** — `model.pt`, `model_config.json` (architecture + threshold + feature order), `scaler.pkl`,
+  `feature_columns.json`, `evaluation_report.json`, zips both `export/` and `mlruns/` and downloads them
 
 **Known issue (fixed):** `!pip install mlflow` unpinned pulls MLflow 3.x, which raises
 `MlflowException: ... filesystem tracking backend ... is in maintenance mode` on
@@ -59,14 +76,15 @@ any time you want a second pair of eyes.
 matching `infra/mlflow/Dockerfile` exactly — keeps both sides on the identical FileStore format instead of
 just silencing the guard rail with `MLFLOW_ALLOW_FILE_STORE=true`.
 
+Work through it at your own pace — [ml-techniques-reference.md](ml-techniques-reference.md) is the cheat
+sheet, and the notebook's own markdown cells explain the "why" at each step. Paste code/output back here any
+time you want a second pair of eyes.
+
 **Definition of done for this stage:**
-- [ ] EDA complete, imbalance quantified, data quality issues noted
-- [ ] Feature engineering applied, train/val/test split done (stratified, no leakage)
-- [ ] Weight init comparison logged (zero / Xavier / He)
-- [ ] Regularization ablations logged (dropout / batchnorm / weight decay / early stopping)
-- [ ] Imbalance strategy comparison logged (baseline / class weights / SMOTE / undersampling)
-- [ ] Grid search + random search logged; Optuna pass optional
-- [ ] Best run selected via `mlflow.search_runs`, re-evaluated on the held-out test set
+- [ ] Ran end-to-end in Colab without errors (restart runtime first, since the mlflow pin needs a fresh import)
+- [ ] Reviewed each "Reading this plot" interpretation against your actual output — flag anything that
+      doesn't match what's described (small dataset-sampling differences are expected, wildly different
+      patterns are worth a second look)
 - [ ] `mlruns/` exported and merged into `infra/mlflow/data/mlruns/` (browsable locally)
 - [ ] `ml/artifacts/{model,preprocessing,metrics}/` populated from the winning run
 
