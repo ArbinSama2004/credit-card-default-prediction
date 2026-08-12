@@ -8,7 +8,7 @@ what's next" without re-reading the whole conversation.
 | Stage | Status |
 |---|---|
 | Stage 1 — Project structure, `uv` envs, Docker + MLflow tracking | ✅ Done |
-| Stage 1.5 — Colab: EDA, preprocessing, training, tuning, MLflow logging | ⏳ Not started (you) |
+| Stage 1.5 — Colab: EDA, preprocessing, training, tuning, MLflow logging | 🔄 In progress — EDA drafted |
 | Stage 2 — FastAPI backend serving the exported model | ⬜ Not started |
 | Stage 3 — Streamlit dashboard | ⬜ Not started |
 
@@ -41,10 +41,23 @@ make frontend-run    # http://localhost:8501
 
 ## Stage 1.5 — Colab training (your turn)
 
-Not started. This is the big time investment — work through
-`ml/notebooks/01_credit_card_default_training.ipynb` section by section, using
-[ml-techniques-reference.md](ml-techniques-reference.md) as the cheat sheet. Come back here (or just keep
-chatting) whenever you want a second pair of eyes on a specific section, a result, or a bug.
+In progress. Section 2 (EDA) in `ml/notebooks/01_credit_card_default_training.ipynb` is fully drafted —
+target imbalance + naive-accuracy floor, missing-value/duplicate check, `EDUCATION`/`MARRIAGE` undocumented
+codes, numeric distributions (raw vs. log for the skewed bill/payment columns), `PAY_0..PAY_6` vs. default
+rate, correlation ranking + heatmap, demographic slices, and a summary table mapping every finding to the
+Section 3 decision it drives. Heavily commented on purpose — read it in Colab rather than just running it,
+that's where the "why" lives. Sections 3 onward are still `# TODO` placeholders, filled in as we go section
+by section.
+
+Work through the rest of `ml/notebooks/01_credit_card_default_training.ipynb` at your own pace, using
+[ml-techniques-reference.md](ml-techniques-reference.md) as the cheat sheet. Paste code/output back here
+any time you want a second pair of eyes.
+
+**Known issue (fixed):** `!pip install mlflow` unpinned pulls MLflow 3.x, which raises
+`MlflowException: ... filesystem tracking backend ... is in maintenance mode` on
+`mlflow.set_experiment(...)`. Fixed by pinning `mlflow==2.16.2` in the notebook's install cell (cell 0),
+matching `infra/mlflow/Dockerfile` exactly — keeps both sides on the identical FileStore format instead of
+just silencing the guard rail with `MLFLOW_ALLOW_FILE_STORE=true`.
 
 **Definition of done for this stage:**
 - [ ] EDA complete, imbalance quantified, data quality issues noted
