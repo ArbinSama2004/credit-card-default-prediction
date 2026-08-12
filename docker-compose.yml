@@ -1,0 +1,41 @@
+services:
+  mlflow:
+    build:
+      context: ./infra/mlflow
+    container_name: cc-default-mlflow
+    ports:
+      # Host 5001 -> container 5000: port 5000 collides with macOS
+      # AirPlay Receiver (System Settings > General > AirDrop & Handoff),
+      # which answers on localhost:5000 with an unrelated 403.
+      - "5001:5000"
+    volumes:
+      # Bind mount (not a named volume) on purpose: you need to drop the
+      # mlruns/ folder downloaded from Colab directly onto the host path
+      # ./infra/mlflow/data/mlruns — see docs/mlflow-workflow.md.
+      - ./infra/mlflow/data:/mlflow
+    restart: unless-stopped
+
+  # --- Enabled in Stage 2 ---
+  # backend:
+  #   build:
+  #     context: .
+  #     dockerfile: backend/Dockerfile
+  #   container_name: cc-default-backend
+  #   ports:
+  #     - "8000:8000"
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - mlflow
+
+  # --- Enabled in Stage 3 ---
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #   container_name: cc-default-frontend
+  #   ports:
+  #     - "8501:8501"
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - backend

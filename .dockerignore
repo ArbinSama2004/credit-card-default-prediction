@@ -1,0 +1,11 @@
+**/__pycache__
+**/*.pyc
+**/.venv
+**/.git
+ml/data
+ml/notebooks
+ml/mlruns_export
+infra/mlflow/data
+.env
+.env.*
+!.env.example

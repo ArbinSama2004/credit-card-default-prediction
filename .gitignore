@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# uv
+# (uv.lock IS committed on purpose — reproducible envs)
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+
+# MLflow local tracking data (regenerated from Colab exports, not source)
+infra/mlflow/data/*
+!infra/mlflow/data/.gitkeep
+
+# Raw dataset (large / redistribute per Kaggle terms, not in git)
+ml/data/*
+!ml/data/.gitkeep
+
+# Trained model artifacts (binary, regenerated from Colab — track via
+# releases/DVC/Git LFS later if needed, not plain git for now)
+ml/artifacts/**/*.pt
+ml/artifacts/**/*.pth
+ml/artifacts/**/*.pkl
+ml/artifacts/**/*.joblib
+ml/mlruns_export/*
+!ml/mlruns_export/.gitkeep
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# Streamlit local secrets
+frontend/.streamlit/secrets.toml
