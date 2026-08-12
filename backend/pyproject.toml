@@ -7,6 +7,16 @@ dependencies = [
     "fastapi>=0.141.1",
     "pydantic-settings>=2.15.0",
     "uvicorn[standard]>=0.52.1",
+    "torch>=2.4,<3",
+    # Pinned to match the exact version the Colab training run pickled
+    # ml/artifacts/preprocessing/scaler.pkl with (confirmed via the
+    # InconsistentVersionWarning scikit-learn raises on a version mismatch).
+    # Unlike torch's state_dict loading, sklearn's pickle format is NOT
+    # guaranteed stable across versions — this pin removes that risk
+    # entirely rather than hoping a newer sklearn happens to stay compatible.
+    "scikit-learn==1.6.1",
+    "pandas>=2.2",
+    "numpy>=1.26",
 ]
 
 [dependency-groups]
@@ -17,3 +27,14 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+# CPU-only torch build — this service only ever runs a small MLP (a few
+# thousand parameters) at inference; the CUDA wheel would add ~2GB for
+# zero benefit, both locally and in the Docker image.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

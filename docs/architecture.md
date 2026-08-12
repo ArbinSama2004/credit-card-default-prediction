@@ -46,10 +46,16 @@ Each of `ml/`, `backend/`, `frontend/` is independent on purpose:
 3. `backend/Dockerfile` builds with the **repo root** as its build context (see `docker-compose.yml`)
    specifically so it can `COPY ml/artifacts ./artifacts` into the image without duplicating files into
    `backend/`.
-4. `backend/app/inference.py` (Stage 2) loads from `ARTIFACTS_DIR`, reconstructs the exact `nn.Module`
-   architecture using `model_config.json`, and applies the same preprocessing (scaler + column order) the
-   notebook used — this symmetry is the most common source of silent bugs in ML serving, so it's called
-   out explicitly here.
+4. `backend/app/inference.py` loads from `ARTIFACTS_DIR`, reconstructs the exact `nn.Module` architecture
+   using `model_config.json`, and applies the same preprocessing the notebook used —
+   `app/inference.py`'s `build_features()` mirrors notebook Sections 3.1-3.6 step for step (undocumented-code
+   cleanup, the 7 engineered features, the log transform, explicit one-hot encoding, then the fitted
+   scaler). Training/serving skew — this pipeline silently drifting from the one that produced the training
+   data — is the most common source of silent bugs in ML serving, so any change to either side needs the
+   matching change on the other.
+5. The exported `decision_threshold` (tuned on validation, not the PyTorch default of 0.5) is applied in
+   `ModelService.predict()` — every prediction returns both the raw `probability` and the thresholded
+   `prediction`/`risk_label`, so a consumer can always re-threshold from the raw score if needed.
 
 ## MLflow: local Docker server, Colab logs locally
 
@@ -73,16 +79,19 @@ changes `mlflow.set_tracking_uri(...)` in the notebook — nothing else in this 
 ## Local dev vs. Docker
 
 Everything can run natively via `uv run ...` (see the Makefile) for fast iteration, or via
-`docker compose up` for something closer to the deployed shape. `docker-compose.yml` currently only
-enables the `mlflow` service (Stage 1); `backend` and `frontend` services are defined but commented out
-until Stages 2 and 3 land, so `docker compose up` doesn't fail on services with no app code yet.
+`docker compose up` for something closer to the deployed shape. `docker-compose.yml` enables `mlflow` and
+`backend` as of Stage 2; `frontend` is defined but commented out until Stage 3 lands.
+
+Verified both paths produce **identical** predictions for the same input (same probability to 15 decimal
+places) — confirming the Docker image's artifact copy and CPU-torch build don't introduce any drift from
+local `uv run`.
 
 ## Ports
 
 | Service | Host port | Note |
 |---|---|---|
 | MLflow UI | `5001` | Not `5000` — that collides with macOS AirPlay Receiver |
-| Backend (FastAPI) | `8000` | Stage 2 |
+| Backend (FastAPI) | `8000` | `/docs` for interactive Swagger UI |
 | Frontend (Streamlit) | `8501` | Stage 3 |
 
 ## Tech stack

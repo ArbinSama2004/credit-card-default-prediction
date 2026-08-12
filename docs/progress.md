@@ -9,7 +9,7 @@ what's next" without re-reading the whole conversation.
 |---|---|
 | Stage 1 — Project structure, `uv` envs, Docker + MLflow tracking | ✅ Done |
 | Stage 1.5 — Colab: EDA, preprocessing, training, tuning, MLflow logging | ✅ Done — artifacts in `ml/artifacts/`, `mlruns/` merged |
-| Stage 2 — FastAPI backend serving the exported model | ⬜ Not started |
+| Stage 2 — FastAPI backend serving the exported model | ✅ Done |
 | Stage 3 — Streamlit dashboard | ⬜ Not started |
 
 ## Stage 1 — Project structure & MLflow tracking (done: 2026-08-12)
@@ -130,17 +130,48 @@ threshold were real gains, not just corrections.
 order, `hidden_dims=[64,32]`, `dropout=0.2`, `use_batchnorm=true`, `init_scheme=he`, `decision_threshold=0.28`
 — the backend must apply this threshold, not the PyTorch default of 0.5.
 
-## Stage 2 — Backend (FastAPI)
+## Stage 2 — Backend (FastAPI) — done: 2026-08-12
 
-Not started. Blocked on Stage 1.5 artifacts existing (need to know the real feature schema and model
-architecture before writing `inference.py`/`schemas.py`). Planned scope: `app/model.py` (mirror training
-architecture), `app/inference.py` (load artifacts, preprocess, predict, apply the tuned threshold),
-`app/schemas.py`, `app/routers/predict.py`, tests, uncomment the `backend` service in `docker-compose.yml`.
+- [x] `app/model.py` — `CreditDefaultMLP`, structurally identical to the training-time class (init-scheme
+      logic intentionally dropped — dead weight once `load_state_dict` runs)
+- [x] `app/inference.py` — `ModelService`, loaded once at import time. `build_features()` mirrors notebook
+      Sections 3.1-3.6 step for step: undocumented-code cleanup → 7 engineered features (from raw values)
+      → log transform (applied after, matching the notebook's order) → **explicit** one-hot encoding
+      (deliberately not `pd.get_dummies` — see the code comment on why that breaks on small/single-row
+      batches) → reindex to `feature_columns` (fail-fast on any mismatch) → scaler transform
+- [x] `app/schemas.py` — `CustomerFeatures` uses the raw Kaggle column names as field names on purpose,
+      to remove any "which name maps to which column" ambiguity at the one boundary a human actually types
+      into; `PredictionResponse`, batch variants, `ModelInfo`
+- [x] `app/routers/predict.py` — `POST /predict`, `POST /predict/batch`, `GET /model/info`
+- [x] `app/routers/health.py` — `/health/ready` now reports real `model_loaded` status
+- [x] `backend/pyproject.toml` — added `torch` (pinned to the CPU-only wheel index — this service never
+      needs CUDA), `scikit-learn==1.6.1` **exactly** matching the version `scaler.pkl` was pickled with
+      (confirmed via the `InconsistentVersionWarning` a mismatched version raises), `pandas`, `numpy`
+- [x] `.env.example` fixed — it previously set `ARTIFACTS_DIR=../ml/artifacts`, which would have silently
+      overridden the Dockerfile's correct `/app/artifacts` once passed through `env_file` in
+      `docker-compose.yml`, breaking the containerized backend. Removed, with a comment explaining why.
+- [x] `backend/tests/` — 12 tests: response-shape checks, directional sanity checks (an obviously-low-risk
+      profile must score below an obviously-high-risk one and land on the correct side of the threshold —
+      not a fixed-value regression test, which would break on every retrain), batch/single-predict
+      agreement, missing-field validation, `/model/info` contract
+- [x] `docker-compose.yml` — `backend` service uncommented
+- [x] Verified **both** paths end-to-end: `uv run uvicorn` locally and `docker compose up backend` in a
+      container both built successfully and returned the **identical** prediction (same probability to 15
+      decimal places) for the same input — confirms no drift between the dev and containerized paths
+
+**Try it:**
+```bash
+make backend-run                    # http://localhost:8000/docs
+# or, containerized:
+make docker-up                      # mlflow + backend
+curl http://localhost:8000/health/ready
+```
 
 ## Stage 3 — Frontend (Streamlit)
 
-Not started. Blocked on Stage 2's `/predict` contract existing. Planned scope: single-prediction form,
-batch CSV upload, a model-insights page, uncomment the `frontend` service in `docker-compose.yml`.
+Not started. Blocked on nothing now — Stage 2's `/predict`, `/predict/batch`, and `/model/info` contracts
+exist and are verified. Planned scope: single-prediction form, batch CSV upload, a model-insights page
+(backed by `/model/info`), uncomment the `frontend` service in `docker-compose.yml`.
 
 ## Decisions log
 

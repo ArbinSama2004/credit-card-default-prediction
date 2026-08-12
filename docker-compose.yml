@@ -15,18 +15,18 @@ services:
       - ./infra/mlflow/data:/mlflow
     restart: unless-stopped
 
-  # --- Enabled in Stage 2 ---
-  # backend:
-  #   build:
-  #     context: .
-  #     dockerfile: backend/Dockerfile
-  #   container_name: cc-default-backend
-  #   ports:
-  #     - "8000:8000"
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - mlflow
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: cc-default-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - mlflow
+    restart: unless-stopped
 
   # --- Enabled in Stage 3 ---
   # frontend:

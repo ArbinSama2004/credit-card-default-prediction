@@ -12,6 +12,10 @@ def test_health() -> None:
 
 
 def test_readiness() -> None:
+    """As of Stage 2, model_loaded should be True whenever ml/artifacts/ is
+    populated (the normal case). If this starts failing, check ARTIFACTS_DIR
+    and that ml/artifacts/ actually has the Colab export in it."""
     response = client.get("/health/ready")
     assert response.status_code == 200
-    assert response.json()["model_loaded"] is False
+    body = response.json()
+    assert body["model_loaded"] is True, body["load_error"]

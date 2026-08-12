@@ -48,12 +48,12 @@ frontend-run: ## Run the Streamlit dashboard on :8501
 frontend-lock: ## Re-lock frontend dependencies
 	cd frontend && uv lock
 
-## ---- Docker (full stack, from Stage 3 onward) -------------------------------
+## ---- Docker (mlflow + backend as of Stage 2; frontend joins in Stage 3) -----
 
 docker-build: ## Build all service images
 	docker compose build
 
-docker-up: ## Start the full stack (mlflow; backend/frontend once uncommented)
+docker-up: ## Start mlflow + backend (frontend once uncommented in Stage 3)
 	docker compose up -d --build
 
 docker-down: ## Stop the full stack
